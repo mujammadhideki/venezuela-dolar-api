@@ -10,14 +10,28 @@ def get_bcv_rate():
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
     }
     try:
-        response = requests.get(url, headers=headers, verify=False) # BCV often has SSL issues
+        response = requests.get(url, headers=headers, verify=False, timeout=10)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
         
+        # BCV has multiple currency rates. We want the one for USD.
+        # The container usually has id="dolar"
         usd_container = soup.find("div", {"id": "dolar"})
         if usd_container:
-            rate_text = usd_container.find("strong").text.strip().replace(",", ".")
-            return float(rate_text)
+            # Inside it should be the rate
+            rate_element = usd_container.find("strong")
+            if rate_element:
+                rate_text = rate_element.text.strip().replace(",", ".")
+                return float(rate_text)
+        
+        # Fallback if structure changed slightly or initial selector fails
+        for container in soup.find_all("div", class_="field-content"):
+            if "USD" in container.text:
+                strong_tag = container.find_next("strong")
+                if strong_tag:
+                    rate_text = strong_tag.text.strip().replace(",", ".")
+                    return float(rate_text)
+
     except Exception as e:
         print(f"Error fetching BCV: {e}")
     return None
