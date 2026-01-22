@@ -1,0 +1,49 @@
+name: Update Dollar Rates
+
+on:
+  schedule:
+    # Horarios solicitados (UTC):
+    # Venezuela es UTC-4.
+    # 9:00 AM VET -> 1:00 PM UTC
+    # 12:00 PM VET -> 4:00 PM UTC
+    # 3:00 PM VET -> 7:00 PM UTC
+    # 4:00 PM to 7:00 PM VET (BCV check every 15 min) -> 8:00 PM to 11:00 PM UTC
+    # 9:00 PM VET -> 1:00 AM UTC (next day)
+    
+    # Binance updates
+    - cron: '0 13 * * *'  # 9am VET
+    - cron: '0 16 * * *'  # 12pm VET
+    - cron: '0 19 * * *'  # 3pm VET
+    - cron: '0 1 * * *'   # 9pm VET
+    
+    # BCV Window (4pm - 7pm VET) Every 15 mins Mon-Fri
+    - cron: '*/15 20-23 * * 1-5'
+    
+  workflow_dispatch: # Permite ejecutar manualmente
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run scraper
+        run: python scraper.py
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "Github Action"
+          git config --global user.email "action@github.com"
+          git add .
+          git commit -m "Update rates: $(date)" || echo "No changes to commit"
+          git push

@@ -1,0 +1,14 @@
+[
+    {
+        "moneda": "USD",
+        "nombre": "Oficial",
+        "promedio": 349.9272,
+        "fechaActualizacion": "2026-01-22T12:36:25.027314"
+    },
+    {
+        "moneda": "USD",
+        "nombre": "Paralelo",
+        "promedio": 458.999,
+        "fechaActualizacion": "2026-01-22T12:36:25.027314"
+    }
+]
