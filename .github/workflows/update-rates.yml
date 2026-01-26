@@ -1,5 +1,5 @@
 name: Update Dollar Rates
-
+# SIEMPRE CADA 15 MINUTOS
 on:
   schedule:
     - cron: '*/15 * * * *'
