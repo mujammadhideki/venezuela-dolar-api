@@ -17,6 +17,7 @@ on:
     - cron: '0 1 * * *'   # 9pm VET
     
     # BCV Window (4pm - 7pm VET) Every 15 mins Mon-Fri
+    - cron: '0 13 * * *'  # 9am VET
     - cron: '*/15 20-23 * * 1-5'
     
   workflow_dispatch: # Permite ejecutar manualmente
