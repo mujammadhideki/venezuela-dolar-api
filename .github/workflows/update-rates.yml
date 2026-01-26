@@ -2,18 +2,12 @@ name: Update Dollar Rates
 
 on:
   schedule:
-    - cron: '0 13 * * *'
+    - cron: '0 12 * * *'
     - cron: '0 16 * * *'
     - cron: '0 19 * * *'
     - cron: '0 1 * * *'
     - cron: '*/15 20-23 * * 1-5'
-
-    
-    # BCV Window (4pm - 7pm VET) Every 15 mins Mon-Fri
-    - cron: '0 13 * * *'  # 9am VET
-    - cron: '*/15 20-23 * * 1-5'
-    
-   workflow_dispatch: # Permite ejecutar manualmente
+  workflow_dispatch: # Permite ejecutar manualmente
 
 permissions:
   contents: write
