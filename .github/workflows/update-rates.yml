@@ -2,13 +2,8 @@ name: Update Dollar Rates
 
 on:
   schedule:
-    - cron: '40 16 * * *'  # Ejecución de prueba a las 12:40 PM VET
-    - cron: '0 12 * * *'
-    - cron: '0 16 * * *'
-    - cron: '0 19 * * *'
-    - cron: '0 1 * * *'
-    - cron: '*/15 20-23 * * 1-5'
-  workflow_dispatch: # Permite ejecutar manualmente
+    - cron: '*/15 * * * *'
+  workflow_dispatch:
 
 permissions:
   contents: write
