@@ -1,6 +1,6 @@
 name: Update Dollar Rates
 
-
+on:
   schedule:
     - cron: '0 13 * * *'
     - cron: '0 16 * * *'
@@ -13,7 +13,7 @@ name: Update Dollar Rates
     - cron: '0 13 * * *'  # 9am VET
     - cron: '*/15 20-23 * * 1-5'
     
-   workflow_dispatch:T # Permite ejecutar manualmente
+   workflow_dispatch: # Permite ejecutar manualmente
 
 permissions:
   contents: write
