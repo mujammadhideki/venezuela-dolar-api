@@ -3,12 +3,12 @@
         "moneda": "USD",
         "nombre": "Oficial",
         "promedio": 474.0598,
-        "fechaActualizacion": "2026-04-06T05:13:28.242081"
+        "fechaActualizacion": "2026-04-06T07:03:36.012084"
     },
     {
         "moneda": "USD",
         "nombre": "Paralelo",
-        "promedio": 625.0,
-        "fechaActualizacion": "2026-04-06T05:13:28.242081"
+        "promedio": 624.61,
+        "fechaActualizacion": "2026-04-06T07:03:36.012084"
     }
 ]
