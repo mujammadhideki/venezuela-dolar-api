@@ -5,7 +5,7 @@ import os
 from datetime import datetime
 
 def get_bcv_rate():
-    """Obtiene la tasa oficial del BCV."""
+    """Obtiene la tasa oficial del BCV haciendo web scraping (Comprobado que funciona)."""
     url = "https://www.bcv.org.ve/"
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
@@ -26,28 +26,22 @@ def get_bcv_rate():
 
 def get_paralelo_rate():
     """
-    Obtiene la tasa de Binance P2P / Paralelo haciendo web scraping 
-    a ExchangeMonitor, saltándose los bloqueos de APIs.
+    Obtiene la tasa del dólar paralelo usando DolarApi.
+    Es un servicio gratuito para desarrolladores que no bloquea a GitHub Actions.
     """
-    # Buscamos directamente en la página de estadísticas de Binance de ExchangeMonitor
-    url = "https://exchangemonitor.net/estadisticas/ve/binance"
-    headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
+    url = "https://ve.dolarapi.com/v1/dolares/paralelo"
     try:
-        response = requests.get(url, headers=headers, timeout=20)
+        # Se realiza una petición limpia sin headers complejos
+        response = requests.get(url, timeout=15)
         response.raise_for_status()
-        soup = BeautifulSoup(response.text, "html.parser")
+        data = response.json()
         
-        # Encontramos la etiqueta H2 que contiene el precio grande en la web
-        price_element = soup.find("h2", class_="tasa")
-        if price_element:
-            # Extraemos el texto, quitamos la palabra 'Bs.' y reemplazamos la coma por punto
-            price_text = price_element.text.replace("Bs.", "").strip().replace(",", ".")
-            return float(price_text)
+        # DolarApi devuelve un JSON claro con la llave 'promedio'
+        if "promedio" in data:
+            return float(data["promedio"])
             
     except Exception as e:
-        print(f"Error extrayendo de ExchangeMonitor: {e}")
+        print(f"Error en DolarApi (Paralelo): {e}")
         
     return None
 
@@ -56,14 +50,14 @@ def main():
     bcv = get_bcv_rate()
     paralelo = get_paralelo_rate()
     
-    # 2. Resguardo de valores
+    # 2. Resguardo de valores (Si algo falla guarda 0.0)
     bcv_val = bcv if bcv is not None else 0.0
     binance_val = paralelo if paralelo is not None else 0.0
 
     # Fecha y hora actual
     now = datetime.now().isoformat()
     
-    # 3. Preparar la estructura de archivos
+    # 3. Preparar la estructura de carpetas
     os.makedirs("v1/dolares", exist_ok=True)
     
     oficial = {
@@ -88,7 +82,7 @@ def main():
     with open("index.json", "w") as f:
         json.dump(index_data, f, indent=4)
 
-    print(f"Proceso finalizado. BCV: {bcv_val} | Binance (Paralelo): {binance_val}")
+    print(f"Proceso finalizado. BCV: {bcv_val} | Paralelo: {binance_val}")
 
 if __name__ == "__main__":
     main()
