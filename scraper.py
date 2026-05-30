@@ -26,11 +26,32 @@ def get_bcv_rate():
         print(f"Error detectado en BCV: {e}")
     return None
 
-def get_binance_rate():
-    """Obtiene la tasa del Paralelo vía Binance P2P (Simulando venta)."""
+def get_paralelo_rate():
+    """
+    Obtiene la tasa del dólar paralelo usando una API pública alternativa
+    para evitar los bloqueos de Cloudflare/Binance en GitHub Actions.
+    """
+    # Usamos la API pública de pydolarvenezuela que monitorea EnParaleloVzla y Binance
+    url = "https://pydolarvenezuela-api.vercel.app/api/v1/dollar?page=enparalelovzla"
+    try:
+        response = requests.get(url, timeout=20)
+        response.raise_for_status()
+        data = response.json()
+        
+        # Extraemos el promedio general del paralelo
+        if "promedio" in data:
+            return float(data["promedio"])
+            
+    except Exception as e:
+        print(f"Error detectado en Paralelo (API): {e}")
+        
+        # Plan B: Si la API anterior falla, intentamos con la de Binance P2P limpia
+        return get_binance_backup()
+    return None
+
+def get_binance_backup():
+    """Plan de respaldo directo a Binance P2P con headers optimizados."""
     url = "https://p2p.binance.com/bapi/c2c/v2/friendly/c2c/adv/search"
-    
-    # Configuramos el payload para obtener el precio real de mercado
     payload = {
         "asset": "USDT",
         "fiat": "VES",
@@ -38,37 +59,32 @@ def get_binance_rate():
         "page": 1,
         "payTypes": [],
         "publisherType": None,
-        "rows": 10,
-        "tradeType": "SELL",    # "SELL" nos da el precio al que la gente vende (el real)
-        "transAmount": "1000"   # Filtramos montos bajos para evitar tasas falsas
+        "rows": 5,
+        "tradeType": "SELL",
+        "transAmount": "" # Dejamos el monto vacío para evitar respuestas erróneas si cambia la API
     }
-    
     headers = {
         "Content-Type": "application/json",
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
-
     try:
         response = requests.post(url, json=payload, headers=headers, timeout=20)
-        response.raise_for_status()
-        data = response.json()
-        
-        if data.get("data") and len(data["data"]) > 0:
-            # Tomamos el primer anuncio de la lista (suele ser el más representativo)
-            price = data["data"][0]["adv"]["price"]
-            return float(price)
+        if response.status_code == 200:
+            data = response.json()
+            if data.get("data"):
+                return float(data["data"][0]["adv"]["price"])
     except Exception as e:
-        print(f"Error detectado en Binance: {e}")
+        print(f"Error en Plan B (Binance directo): {e}")
     return None
 
 def main():
     # 1. Obtener los datos
     bcv = get_bcv_rate()
-    binance = get_binance_rate()
+    paralelo = get_paralelo_rate()
     
-    # 2. Si fallan, ponemos 0.0 para saber que hubo un error de conexión
+    # 2. Si fallan por completo, dejamos el valor en 0.0 para alertar un error real
     bcv_val = bcv if bcv else 0.0
-    binance_val = binance if binance else 0.0
+    binance_val = paralelo if paralelo else 0.0
 
     # Fecha y hora actual
     now = datetime.now().isoformat()
@@ -87,21 +103,21 @@ def main():
         json.dump(oficial, f, indent=4)
         
     # Archivo de tasa Paralelo
-    paralelo = {
+    paralelo_data = {
         "moneda": "USD",
         "nombre": "Paralelo",
         "promedio": binance_val,
         "fechaActualizacion": now
     }
     with open("v1/dolares/paralelo", "w") as f:
-        json.dump(paralelo, f, indent=4)
+        json.dump(paralelo_data, f, indent=4)
 
     # Archivo index.json (Resumen de ambos)
-    index_data = [oficial, paralelo]
+    index_data = [oficial, paralelo_data]
     with open("index.json", "w") as f:
         json.dump(index_data, f, indent=4)
 
-    print(f"Proceso finalizado. BCV: {bcv_val} | Binance: {binance_val}")
+    print(f"Proceso finalizado. BCV: {bcv_val} | Paralelo: {binance_val}")
 
 if __name__ == "__main__":
     main()
