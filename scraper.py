@@ -11,6 +11,7 @@ def get_bcv_rate():
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
     }
     try:
+        # verify=False omite la verificación SSL temporalmente si hay problemas de certificados
         response = requests.get(url, headers=headers, verify=False, timeout=20)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
@@ -27,17 +28,21 @@ def get_bcv_rate():
 def get_paralelo_rate():
     """
     Obtiene la tasa del dólar paralelo usando DolarApi.
-    Es un servicio gratuito para desarrolladores que no bloquea a GitHub Actions.
+    Intenta obtener el 'precio de compra' primero. Si falla, usa 'promedio' como respaldo.
     """
     url = "https://ve.dolarapi.com/v1/dolares/paralelo"
     try:
-        # Se realiza una petición limpia sin headers complejos
         response = requests.get(url, timeout=15)
         response.raise_for_status()
         data = response.json()
         
-        # DolarApi devuelve un JSON claro con la llave 'promedio'
-        if "promedio" in data:
+        # 1. Intentar obtener la tasa de COMPRA (Nueva implementación)
+        if "compra" in data and data["compra"] is not None:
+            return float(data["compra"])
+            
+        # 2. Respaldo: usar el PROMEDIO si no hay tasa de compra (Implementación anterior)
+        elif "promedio" in data and data["promedio"] is not None:
+            print("No se encontró precio de compra, usando promedio como respaldo.")
             return float(data["promedio"])
             
     except Exception as e:
