@@ -11,7 +11,6 @@ def get_bcv_rate():
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
     }
     try:
-        # verify=False omite la verificación SSL temporalmente si hay problemas de certificados
         response = requests.get(url, headers=headers, verify=False, timeout=20)
         response.raise_for_status()
         soup = BeautifulSoup(response.text, "html.parser")
@@ -25,10 +24,39 @@ def get_bcv_rate():
         print(f"Error detectado en BCV: {e}")
     return None
 
+def get_usdt_buy_rate():
+    """
+    PLAN A: Simula entrar a usdt.com.ve para hacer scraping de la tasa de compra.
+    Busca la clase específica <span class="rate-display rate-buy">
+    """
+    url = "https://www.usdt.com.ve/"
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+    }
+    try:
+        response = requests.get(url, headers=headers, timeout=20)
+        response.raise_for_status()
+        soup = BeautifulSoup(response.text, "html.parser")
+        
+        # Buscar el span con las clases exactas que indicaste
+        rate_element = soup.select_one("span.rate-display.rate-buy")
+        
+        if rate_element:
+            # Extraer el texto, limpiar posibles puntos de miles y cambiar la coma por punto decimal
+            rate_text = rate_element.text.strip()
+            # Ejemplo: "860,00" -> 860.00
+            clean_rate = rate_text.replace(".", "").replace(",", ".")
+            return float(clean_rate)
+            
+    except Exception as e:
+        print(f"Error detectado al hacer scraping en usdt.com.ve: {e}")
+        
+    return None
+
 def get_paralelo_rate():
     """
-    Obtiene la tasa del dólar paralelo usando DolarApi.
-    Intenta obtener el 'precio de compra' primero. Si falla, usa 'promedio' como respaldo.
+    PLAN B: Obtiene la tasa del dólar paralelo usando DolarApi.
+    Solo se ejecuta si el scraping a usdt.com.ve falla.
     """
     url = "https://ve.dolarapi.com/v1/dolares/paralelo"
     try:
@@ -36,33 +64,35 @@ def get_paralelo_rate():
         response.raise_for_status()
         data = response.json()
         
-        # 1. Intentar obtener la tasa de COMPRA (Nueva implementación)
-        if "compra" in data and data["compra"] is not None:
-            return float(data["compra"])
-            
-        # 2. Respaldo: usar el PROMEDIO si no hay tasa de compra (Implementación anterior)
-        elif "promedio" in data and data["promedio"] is not None:
-            print("No se encontró precio de compra, usando promedio como respaldo.")
+        if "promedio" in data and data["promedio"] is not None:
             return float(data["promedio"])
             
     except Exception as e:
-        print(f"Error en DolarApi (Paralelo): {e}")
+        print(f"Error en DolarApi (Paralelo de respaldo): {e}")
         
     return None
 
 def main():
-    # 1. Obtener los datos
+    # 1. Obtener tasa oficial
     bcv = get_bcv_rate()
-    paralelo = get_paralelo_rate()
     
-    # 2. Resguardo de valores (Si algo falla guarda 0.0)
+    # 2. Obtener tasa paralela (Con lógica de Plan A y Plan B)
+    paralelo = get_usdt_buy_rate() # Intenta scraping primero
+    
+    if paralelo is None:
+        print("Fallo el Plan A (Scraping usdt.com.ve). Consultando Plan B (DolarApi)...")
+        paralelo = get_paralelo_rate() # Si falla, usa la API como respaldo
+    else:
+        print("Plan A exitoso: Dato extraido de usdt.com.ve")
+    
+    # 3. Resguardo de valores (Si todo falla guarda 0.0)
     bcv_val = bcv if bcv is not None else 0.0
     binance_val = paralelo if paralelo is not None else 0.0
 
     # Fecha y hora actual
     now = datetime.now().isoformat()
     
-    # 3. Preparar la estructura de carpetas
+    # 4. Preparar la estructura de carpetas
     os.makedirs("v1/dolares", exist_ok=True)
     
     oficial = {
@@ -87,7 +117,7 @@ def main():
     with open("index.json", "w") as f:
         json.dump(index_data, f, indent=4)
 
-    print(f"Proceso finalizado. BCV: {bcv_val} | Paralelo: {binance_val}")
+    print(f"Proceso finalizado. BCV: {bcv_val} | Paralelo (Compra): {binance_val}")
 
 if __name__ == "__main__":
     main()
